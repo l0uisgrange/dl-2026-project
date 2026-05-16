@@ -1,5 +1,10 @@
+# IDE
 .vscode
 .idea
 .zed
 
+# OS
 .DS_Store
+
+# Python-generated
+.venv/

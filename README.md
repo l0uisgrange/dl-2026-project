@@ -1,6 +1,6 @@
-# Deep learning
+# Implicit Hate Speech Against Swiss Minorities
 
-This project is dedicated to exploring hate speech recognition based on the [TOXIGEN](https://github.com/microsoft/ToxiGen) dataset, extended to include local minority groups, such as "frontaliers".
+This project, realized in the scope of the EE-559 course at EPFL, is dedicated to exploring hate speech recognition based on the [TOXIGEN](https://github.com/microsoft/ToxiGen) dataset, extended to include swiss minority groups.
 
 | Full name                | SCIPER                                   |
 |:-------------------------|:-----------------------------------------|
