@@ -4,3 +4,4 @@ numpy==2.4.5
 pandas==3.0.3
 toxigen==1.1.0
 transformers==5.8.1
+nltk==3.9.4
