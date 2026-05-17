@@ -32,36 +32,41 @@ def generate(group: str, mode: str, n: int = 1000):
         "focused on French-speaking Switzerland. "
         "The target groups are minorities specific to Switzerland: "
         "cross-border workers (frontaliers), asylum seekers, and the Portuguese community. "
-        "Return only the sentence, nothing else. No quotes, no explanation."
+        "Return only the sentence in lowercase, nothing else. No quotes, no numbering, no explanation."
     )
     writer = csv.writer(open(output_file, "w", newline=""))
 
     print("[openai] starting")
-    for i in range(n):
-        stereotype = stereotypes[i % len(stereotypes)]
+    for j, stereotype in enumerate(stereotypes):
+        n_per_stereotype = n // len(stereotypes)
+        print(f"[{j + 1}/{len(stereotypes)}] {n_per_stereotype} sentences for {stereotype[:60]}")
 
         user_msg = (
-            f"Write a sentence that implicitly expresses this prejudice against {group} in Switzerland: "
-            f"'{stereotype}'. Sound like a real Swiss social media comment — subtle, deniable, no slurs."
+            f"Write {n_per_stereotype} different sentences in lowercase that implicitly express this prejudice "
+            f"against {group} in Switzerland: '{stereotype}'. "
+            f"Each must sound like a different real Swiss social media comment — subtle, deniable, no slurs. "
+            f"Return one sentence per line, nothing else."
             if mode == "hate" else
-            f"Write a neutral or positive sentence mentioning {group} in the Swiss context. No bias, no stereotypes."
+            f"Write {n_per_stereotype} different neutral or positive sentences about {group} "
+            f"in Switzerland, inspired by this angle: '{stereotype}'. "
+            f"Return one sentence per line, nothing else."
         )
 
         response = client.chat.completions.create(
-            model="gpt-5.4-nano",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_msg},
             ],
-            max_tokens=80,
+            max_tokens=80 * n_per_stereotype,
             temperature=0.9,
         )
 
-        text = response.choices[0].message.content.strip()
-        writer.writerow([text, 1 if mode == "hate" else 0, group])
+        lines = response.choices[0].message.content.strip().splitlines()
+        lines = [l.strip() for l in lines if l.strip()]
 
-        if (i + 1) % 100 == 0:
-            print(f" [{i + 1}/{n}]")
+        for text in lines[:n_per_stereotype]:
+            writer.writerow([text, 1 if mode == "hate" else 0, group])
 
     print(f"[done] to {output_file}")
 
