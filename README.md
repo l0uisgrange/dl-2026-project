@@ -14,7 +14,7 @@ This project, realized in the scope of the EE-559 course at EPFL, is dedicated t
 
 - [x] Writen offensive examples of toxicity based on the TOXIGEN format, saved as `prompts/*_sentences.txt` files
 - [x] Generated 1000 samples from each of these files in `data/*.txt` to use for training/benchmarking using `gpt-4o-mini` on OpenAI Platform
-- [ ] Benchmarked the performance of the TOXIGEN model `tomh/toxigen_roberta` on the generated dataset
+- [x] Benchmarked the performance of the TOXIGEN model `tomh/toxigen_roberta` on the generated dataset
 - [ ] Trained a new network on the extended dataset with swiss minorities
 - [ ] Benchmarked the performance of the extended model on the whole dataset
 
@@ -26,3 +26,20 @@ Each minority group (asylum seekers, portuguese, cross-border workers) are repre
 - **`mode`**: 1 meaning the sample was generated from a `hate` dataset and 0 being generated from the `neutral` one
 - **`target_group`**: targeted group (seekers, portuguese, cross-border workers)
 - **`toxicity_ai`**: ai annotated toxicity score on a scale from 1 to 5 (1 being benign and 5 being clearly offensive)
+
+## Benchmarks
+
+Performance on `tomh/toxigen_roberta` directly gave suprising results: roBERTa is very precise (1.0 all the time), but has very low recall (does not detect hate from our dataset) with only 26% hateful content reported.
+
+![Score distribution](https://github.com/l0uisgrange/dl-project-2026/blob/main/assets/distribution.png)
+
+```
+              precision    recall  f1-score   support
+
+     neutral       0.59      1.00      0.74      2432
+        hate       1.00      0.26      0.41      2253
+
+    accuracy                           0.64      4685
+   macro avg       0.80      0.63      0.58      4685
+weighted avg       0.79      0.64      0.58      4685
+```
