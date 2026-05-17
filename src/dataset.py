@@ -3,67 +3,70 @@ code used to generate our datasets (inside the prompts folder)
 """
 
 import os
-import random
+import csv
 import argparse
-import time
+from openai import OpenAI
 
-from toxigen.language_models import ALICE, GPT3
-from toxigen.pretrained_classifiers import ToxDectRoBERTa
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 ENGINE = "gpt-3.5-turbo-instruct"
 ENDPOINT_URL = f"https://api.openai.com/v1/engines/{ENGINE}/completions"
 SECRET_KEY = os.environ.get("OPENAI_API_KEY", "sk-YOUR-KEY-HERE")
 GROUPS = ["cross_border_workers", "asylum_seekers", "portuguese"]
 
-def generate(group: str, mode: str, output_file: str, n: int = 200):
+def generate(group: str, mode: str, n: int = 1000):
     """
     generates a dataset of n examples for the given group and mode
     """
 
-    with open(f"prompts/{mode}_{group}_1k.txt", "r") as f:
-        prompts = f.read().splitlines()
+    input_file = f"prompts/{mode}_{group}_sentences.txt"
+    output_file = f"data/{mode}_{group}.csv"
 
-    print("[toxdectroberta] loading")
-    classifier = ToxDectRoBERTa()
+    print("[prompts] loading prompts")
+    stereotypes = open(input_file).read().splitlines()
+    stereotypes = [s for s in stereotypes if s.strip()]
+    os.makedirs("data", exist_ok=True)
 
-    print("[alice] loading")
-    gpt3 = GPT3(endpoint_url=ENDPOINT_URL, apikey=SECRET_KEY)
-    language_model = ALICE(gpt3, classifier, 1 if mode == "hate" else 0)
+    system_prompt = (
+        "You generate sentences in English for a hate speech detection research dataset "
+        "focused on French-speaking Switzerland. "
+        "The target groups are minorities specific to Switzerland: "
+        "cross-border workers (frontaliers), asylum seekers, and the Portuguese community. "
+        "Return only the sentence, nothing else. No quotes, no explanation."
+    )
+    writer = csv.writer(open(output_file, "w", newline=""))
 
-    print(f"[alice] generating {n} '{mode}' examples for '{group}'")
-    generated = []
-    attempts  = 0
-    with open(output_file, "w") as f:
-        while len(generated) < n:
-            attempts += 1
-            prompt = random.choice(prompts)
+    print("[openai] starting")
+    for i in range(n):
+        stereotype = stereotypes[i % len(stereotypes)]
 
-            # call openai platform
-            try:
-                print(f"[attempt {attempts}] calling openai...", flush=True)
-                response = language_model(prompt)
-                print(f"[attempt {attempts}] got response: {response}", flush=True)
-            except Exception as e:
-                print(f"[attempt {attempts}] error: {e}", flush=True)
-                time.sleep(1)
-                continue
+        user_msg = (
+            f"Write a sentence that implicitly expresses this prejudice against {group} in Switzerland: "
+            f"'{stereotype}'. Sound like a real Swiss social media comment — subtle, deniable, no slurs."
+            if mode == "hate" else
+            f"Write a neutral or positive sentence mentioning {group} in the Swiss context. No bias, no stereotypes."
+        )
 
-            # same as in toxigen notebook
-            text = response[(len(prompt) + 1):].replace("<|endoftext|>", "").replace("\\n", "").strip()
-            if text:
-                label = 1 if mode == "hate" else 0
-                f.write(f"{text}\t{label}\t{group}\n")
-                generated.append(text)
-                if len(generated) % 20 == 0:
-                    print(f"[{len(generated)}/{n}] acceptance rate: {len(generated) / attempts:.1%}")
+        response = client.chat.completions.create(
+            model="gpt-5.4-nano",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_msg},
+            ],
+            max_tokens=80,
+            temperature=0.9,
+        )
 
-    print(f"[done] {len(generated)} examples to {output_file} with acceptance rate {len(generated)/attempts:.1%}")
+        text = response.choices[0].message.content.strip()
+        writer.writerow([text, 1 if mode == "hate" else 0, group])
+
+        if (i + 1) % 100 == 0:
+            print(f" [{i + 1}/{n}]")
+
+    print(f"[done] to {output_file}")
 
 if __name__ == "__main__":
-    # python3 src/dataset.py --group cross_border_workers --mode hate --n 1000
-
-    import nltk
-    nltk.download('stopwords', quiet=True)
+    # python3 src/dataset.py --group cross_border_workers --mode hate --n 10
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--group",  type=str, required=True, choices=GROUPS)
@@ -72,5 +75,4 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=str, default=None)
     args = parser.parse_args()
 
-    output = args.output or f"data/{args.group}_{args.mode}.csv"
-    generate(args.group, args.mode, output, args.n)
+    generate(args.group, args.mode, args.n)
