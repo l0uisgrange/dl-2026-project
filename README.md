@@ -22,16 +22,16 @@ This project, realized in the scope of the EE-559 course at EPFL, is dedicated t
 
 Each minority group (asylum seekers, portuguese, cross-border workers) are represented by a CSV file in the `data` folder, containing
 
-- **`text`**: generated sample corresponding to the ouput of `gpt-4o-mini` from the sentences in the `prompts` folder
-- **`mode`**: 1 meaning the sample was generated from a `hate` dataset and 0 being generated from the `neutral` one
+- **`text`**: generated sample corresponding to the ouput of `gpt-4o-mini` from given sentences
+- **`mode`**: 1 means the sample was generated from the `hate` dataset
 - **`target_group`**: targeted group (seekers, portuguese, cross-border workers)
-- **`toxicity_ai`**: ai annotated toxicity score on a scale from 1 to 5 (1 being benign and 5 being clearly offensive)
+- **`toxicity_ai`**: AI annotated toxicity score on a scale from 1 to 5 (1 being benign)
 
 ## Benchmarks
 
 Performance on `tomh/toxigen_roberta` directly gave suprising results: roBERTa is very precise (1.0 all the time), but has very low recall (does not detect hate from our dataset) with only 26% hateful content reported.
 
-![Score distribution](https://github.com/l0uisgrange/dl-project-2026/blob/main/assets/distribution.png)
+<img src="https://github.com/l0uisgrange/dl-project-2026/blob/main/assets/distribution.png" width="200" />
 
 ```
               precision    recall  f1-score   support
