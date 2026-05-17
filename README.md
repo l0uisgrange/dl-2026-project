@@ -31,7 +31,7 @@ Each minority group (asylum seekers, portuguese, cross-border workers) are repre
 
 Performance on `tomh/toxigen_roberta` directly gave suprising results: roBERTa is very precise (1.0 all the time), but has very low recall (does not detect hate from our dataset) with only 26% hateful content reported.
 
-<img src="https://github.com/l0uisgrange/dl-project-2026/blob/main/assets/distribution.png" width="200" />
+<img src="https://github.com/l0uisgrange/dl-project-2026/blob/main/assets/distribution.png" width="350" />
 
 ```
               precision    recall  f1-score   support
