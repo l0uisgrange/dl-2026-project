@@ -9,6 +9,12 @@ from openai import OpenAI
 
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
+GROUP_NAMES = {
+    "cross_border_workers": "cross-border workers",
+    "asylum_seekers": "asylum seekers",
+    "portuguese": "Portuguese community",
+}
+
 ENGINE = "gpt-3.5-turbo-instruct"
 ENDPOINT_URL = f"https://api.openai.com/v1/engines/{ENGINE}/completions"
 SECRET_KEY = os.environ.get("OPENAI_API_KEY", "sk-YOUR-KEY-HERE")
@@ -32,7 +38,10 @@ def generate(group: str, mode: str, n: int = 1000):
         "focused on French-speaking Switzerland. "
         "The target groups are minorities specific to Switzerland: "
         "cross-border workers (frontaliers), asylum seekers, and the Portuguese community. "
-        "Return only the sentence in lowercase, nothing else. No quotes, no numbering, no explanation."
+        "For each sentence, return EXACTLY one line in this exact format: TOXICITY|sentence\n"
+        "Example: 3|cross-border workers always seem to find jobs faster than locals do.\n"
+        "TOXICITY (1 being subtle) is a single digit 1-5. No numbering, no bullet points."
+        "No explanation, NO LIST NUMBERING, nothing else."
     )
     writer = csv.writer(open(output_file, "w", newline=""))
 
@@ -43,12 +52,19 @@ def generate(group: str, mode: str, n: int = 1000):
 
         user_msg = (
             f"Write {n_per_stereotype} different sentences in lowercase that implicitly express this prejudice "
-            f"against {group} in Switzerland: '{stereotype}'. "
-            f"Each must sound like a different real Swiss social media comment — subtle, deniable, no slurs. "
-            f"Return one sentence per line, nothing else."
+            f"against {GROUP_NAMES[group]} in Switzerland: '{stereotype}'. "
+            f"Rules:\n"
+            f"- You MUST explicitly mention '{GROUP_NAMES[group]}' or a clear synonym in every sentence\n"
+            f"- Subtle and deniable, but the target group must be identifiable\n"
+            f"- Avoid hedging language like 'I think', 'I feel', 'I wonder', 'it seems', 'I can't help but' — BE DIRECT AND ASSERTIVE\n"
+            f"- Vary the intensity: some sentences mildly biased (toxicity 2), some clearly hostile (toxicity 4-5)\n"
+            f"- Sound like a real FRUSTRATED Swiss resident ON A FORUM\n"
+            f"- No slurs, no direct insults, but VERY STRONG opinions are encouraged\n"
+            f"- One sentence per line, nothing else."
             if mode == "hate" else
-            f"Write {n_per_stereotype} different neutral or positive sentences about {group} "
+            f"Write {n_per_stereotype} different neutral or positive sentences in lowercase about {GROUP_NAMES[group]}"
             f"in Switzerland, inspired by this angle: '{stereotype}'. "
+            f"You MUST explicitly mention '{GROUP_NAMES[group]}' in every sentence. "
             f"Return one sentence per line, nothing else."
         )
 
@@ -65,8 +81,16 @@ def generate(group: str, mode: str, n: int = 1000):
         lines = response.choices[0].message.content.strip().splitlines()
         lines = [l.strip() for l in lines if l.strip()]
 
-        for text in lines[:n_per_stereotype]:
-            writer.writerow([text, 1 if mode == "hate" else 0, group])
+        for line in lines[:n_per_stereotype]:
+            line = line.strip()
+            parts = line.split("|")
+            if len(parts) >= 2 and parts[0].strip().isdigit():
+                toxicity = int(parts[0].strip())
+                text = "|".join(parts[1:]).strip()
+            else:
+                # fallback function
+                toxicity, intent, text = 1, 0, line
+            writer.writerow([text, 1 if mode == "hate" else 0, group, toxicity])
 
     print(f"[done] to {output_file}")
 

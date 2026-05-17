@@ -17,3 +17,13 @@ This project, realized in the scope of the EE-559 course at EPFL, is dedicated t
 - [ ] Benchmarked the performance of the TOXIGEN model `tomh/toxigen_roberta` on the generated dataset
 - [ ] Trained a new network on the extended dataset with swiss minorities
 - [ ] Benchmarked the performance of the extended model on the whole dataset
+
+## Dataset
+
+Each minority group (asylum seekers, portuguese, cross-border workers) are represented by a CSV file in the `data` folder, containing
+
+- **`text`**: generated sample corresponding to the ouput of `gpt-4o-mini` from the sentences in the `prompts` folder
+- **`mode`**: 1 meaning the sample was generated from a `hate` dataset and 0 being generated from the `neutral` one
+- **`target_group`**: targeted group (seekers, portuguese, cross-border workers)
+- **`toxicity_ai`**: ai annotated toxicity score on a scale from 1 to 5 (1 being benign and 5 being clearly offensive)
+- **`toxicity_human`** (TODO): ai annotated toxicity score on a scale from 1 to 5 (1 being benign and 5 being clearly offensive)
