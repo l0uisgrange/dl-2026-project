@@ -1,0 +1,22 @@
+model_name: roberta-base
+
+data:
+  file: data.csv
+  text_col: text
+  label_col: toxicity_ai
+  test_size: 0.15
+  valid_size: 0.15
+
+training:
+  output_dir: ./outputs/roberta_fine_tuned
+  max_length: 256
+  batch_size: 16
+  num_epochs: 4
+  learning_rate: 2e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  best_model: True
+
+seed: 1
+early_stopping_patience: 2
+resume_from_checkpoint: null
