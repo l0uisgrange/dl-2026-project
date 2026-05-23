@@ -1,12 +1,80 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from datasets import Dataset, DatasetDict
+from datasets import Dataset, DatasetDict , load_dataset
 
-def create_training_dataset():
+import pandas as pd
 
-    return 
+def merge_datasets(
+    datasets,
+    percentages,
+    final_size,
+    shuffle=True,
+    random_state=42
+):
+    """
+    Merge multiple datasets into one dataset using specified percentages.
 
+    Parameters
+    ----------
+    datasets : dict
+        Dictionary of name -> pandas DataFrame
+
+    percentages : dict
+        Dictionary of name -> percentage contribution
+        Percentages must sum to 1.0
+
+    final_size : int
+        Number of rows in final dataset
+
+    shuffle : bool
+        Whether to shuffle final dataset
+
+    random_state : int
+        Random seed
+
+    Returns
+    -------
+    pandas.DataFrame
+        Final merged dataset
+    """
+
+    # Validate percentages
+    total_percentage = sum(percentages.values())
+
+    if not abs(total_percentage - 1.0) < 1e-6:
+        raise ValueError("Percentages must sum to 1.0")
+
+    sampled_dfs = []
+
+    for name, df in datasets.items():
+
+        if name not in percentages:
+            raise ValueError(f"Missing percentage for dataset: {name}")
+
+        n_samples = int(final_size * percentages[name])
+
+        # Sample with replacement if needed
+        sampled = df.sample(
+            n=n_samples,
+            replace=(n_samples > len(df)),
+            random_state=random_state
+        )
+
+        sampled_dfs.append(sampled)
+
+    # Merge datasets
+    final_dataset = pd.concat(sampled_dfs, ignore_index=True)
+
+    # Shuffle final dataset
+    if shuffle:
+        final_dataset = final_dataset.sample(
+            frac=1,
+            random_state=random_state
+        ).reset_index(drop=True)
+
+    return final_dataset
     
+annotated_data = load_dataset("toxigen/toxigen-data", name="annotated", use_auth_token=True)
 def prepare_datasets(cfg) -> DatasetDict:
     df = pd.read_csv(cfg["data"]["file"])
 

@@ -3,9 +3,9 @@ from datasets import Dataset, DatasetDict
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from transformers import Trainer,TrainingArguments,DataCollatorWithPadding,EarlyStoppingCallback
-    
-
-
+from load_dataset import load_dataset
+from load_model import load_model
+import torch
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
     preds = np.argmax(logits, axis=-1)
@@ -25,7 +25,7 @@ def tokenized_dataset(datasets,tokenizer,max_length):
             max_length=max_length,
         )
     tokenized_dataset = datasets.map(tokenize_batch, batched=True)
-    tokenized_dataset = tokenized.remove_columns(["text"]) 
+    tokenized_dataset = tokenized_dataset.remove_columns(["text"]) 
     tokenized_dataset.set_format(type="torch") 
     return tokenized_dataset
 
