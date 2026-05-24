@@ -1,15 +1,27 @@
 import numpy as np
-from datasets import Dataset, DatasetDict
-from sklearn.model_selection import train_test_split
+from datasets import Dataset,DatasetDict
+from sklearn.model_selection import train_test_split 
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from transformers import Trainer,TrainingArguments,DataCollatorWithPadding,EarlyStoppingCallback
-from load_dataset import load_dataset
-from load_model import load_model
+from src.load_dataset import load_dataset
+from src.load_model import load_model
 import torch
+def create_splits(dataset, valid_size, seed):
+    df=dataset.to_pandas()
+    train, valid = train_test_split(
+        df,
+        test_size=valid_size,
+        random_state=seed,
+        stratify=df["labels"],
+    )
+
+    return DatasetDict({
+        "train": Dataset.from_pandas(train, preserve_index=False),
+        "validation": Dataset.from_pandas(valid, preserve_index=False)})
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
     preds = np.argmax(logits, axis=-1)
-    precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average="weighted", zero_division=0)
+    precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average="macro" , zero_division=0)
     acc = accuracy_score(labels, preds)
     return {
         "accuracy": acc,
@@ -22,6 +34,7 @@ def tokenized_dataset(datasets,tokenizer,max_length):
         return tokenizer(
             batch["text"],
             truncation=True,
+            padding=False,
             max_length=max_length,
         )
     tokenized_dataset = datasets.map(tokenize_batch, batched=True)
@@ -33,6 +46,10 @@ def train(cfg):
 
     model,tokenizer = load_model(cfg)
     dataset=load_dataset(cfg)
+    dataset = create_splits(
+    dataset,
+    valid_size=cfg["dataset"]["valid_size"],
+    seed=cfg["seed"],)
     tokenized = tokenized_dataset(dataset, tokenizer, cfg["training"]["max_length"])
 
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
@@ -42,10 +59,10 @@ def train(cfg):
         learning_rate=cfg["training"]["learning_rate"],
         per_device_train_batch_size=cfg["training"]["batch_size"],
         per_device_eval_batch_size=cfg["training"]["batch_size"],
-        num_train_epochs=cfg["training"]["nums_epochs"],
+        num_train_epochs=cfg["training"]["num_epochs"],
         weight_decay=cfg["training"]["weight_decay"],
         warmup_ratio=cfg["training"]["warmup_ratio"],
-        evaluation_strategy="epoch",
+        eval_strategy="epoch",
         save_strategy="epoch",
         logging_strategy="steps",
         logging_steps=cfg["training"]["logging_steps"],
@@ -63,7 +80,6 @@ def train(cfg):
             args=training_args,
             train_dataset=tokenized["train"],
             eval_dataset=tokenized["validation"],
-            tokenizer=tokenizer,
             data_collator=data_collator,
             compute_metrics=compute_metrics,
             callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg["early_stopping_patience"])],
@@ -74,3 +90,6 @@ def train(cfg):
 
     trainer.save_model(cfg["training"]["output_dir"])
     tokenizer.save_pretrained(cfg["training"]["output_dir"])
+    trainer.save_metrics("train", train_result.metrics)
+    trainer.save_metrics("eval", eval_result)
+    trainer.save_state()

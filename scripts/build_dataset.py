@@ -60,10 +60,19 @@ toxigen_13000 = toxigen_shuffled.iloc[:13000]
 toxigen_16000 = toxigen_shuffled.iloc[:16000]
 
 # ---- MERGE ----
+
 df = pd.concat([df, toxigen_13000], ignore_index=True)
 
+df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 
+df = df.rename(columns={"mode": "labels"})
+
+toxigen_16000 = toxigen_16000.rename(columns={"mode": "labels"})
 # ---- SAVE SAFELY ----
+
+
+
+
 OUTPUT_PATH = BASE_DIR / "data" / "dataset_toxigen_swiss_context.csv"
 df.to_csv(OUTPUT_PATH, index=False)
 OUTPUT_PATH = BASE_DIR / "data" / "dataset_toxigen_16k.csv"
