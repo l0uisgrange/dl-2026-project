@@ -15,8 +15,8 @@ This project, realized in the scope of the EE-559 course at EPFL, is dedicated t
 - [x] Writen offensive examples of toxicity based on the TOXIGEN format, saved as `prompts/*_sentences.txt` files
 - [x] Generated 1000 samples from each of these files in `data/*.txt` to use for training/benchmarking using `gpt-4o-mini` on OpenAI Platform
 - [x] Benchmarked the performance of the TOXIGEN model `tomh/toxigen_roberta` on the generated dataset
-- [ ] Trained a new network on the extended dataset with swiss minorities
-- [ ] Benchmarked the performance of the extended model on the whole dataset
+- [x] Trained a new network on the extended dataset with swiss minorities
+- [x] Benchmarked the performance of the extended model on the whole dataset
 
 ## Dataset
 

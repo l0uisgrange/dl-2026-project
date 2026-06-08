@@ -1,5 +1,5 @@
 model:
-  name: GroNLP/hateBERT
+  name: tomh/toxigen_roberta
   num_labels: 2
 
 dataset:
