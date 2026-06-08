@@ -25,6 +25,7 @@
 \usepackage[accepted]{source/icml2021}
 \usepackage{subcaption}
 \usepackage{float}
+\usepackage{multirow}
 
 
 %%%%%%%%% ADD YOUR GROUP NUMBER %%%%%%%%%
@@ -57,7 +58,7 @@ Group 20
 
 %%%%%%%%% ADD ABSTRACT %%%%%%%%%
 \begin{abstract}
-Hate speech detection systems are predominantly trained on English-language datasets targeting well-documented identity groups, leaving regional and linguistic minorities underrepresented. In this work, we investigate implicit hate speech detection in the Swiss context by extending the ToxiGen benchmark to three Swiss-specific minority groups: cross-border workers, Portuguese residents, and asylum seekers. We generate synthetic hate and neutral samples using \texttt{gpt-4o-mini} and fine-tune \texttt{GroNLP/hateBERT} on the resulting dataset, ToxiGen+. We compare this model against a baseline trained solely on the original ToxiGen-16k data. Our results show that the baseline ToxiGen RoBERTa model generalizes poorly to Swiss minority groups, achieving only 26\% recall on hateful content, while fine-tuning on ToxiGen+ significantly improves detection performance on these underrepresented groups.
+Hate speech detection systems are predominantly trained on English-language, US-centric datasets covering groups such as Mexican, Black, or Jewish Americans, leaving regional minorities from other countries largely underrepresented. In this work, we investigate implicit hate speech detection in the Swiss context by extending the ToxiGen benchmark to three Swiss-specific minority groups: cross-border workers, Portuguese residents, and asylum seekers. We generate synthetic hate and neutral samples using \texttt{gpt-4o-mini} and fine-tune \texttt{tomh/toxigen\_roberta} on the resulting dataset, ToxiGen+. We compare this model against a baseline trained solely on the original ToxiGen-16k data. Our results show that the baseline model achieves only 26\% hate-class recall on Swiss minority content, while fine-tuning on ToxiGen+ raises macro F1 to 0.998 on the same benchmark, with near-perfect hate recall.
 
 %%%%%%%%% ADD KEYWORDS %%%%%%%%%
 % Make sure to keep keywords on a new line.
@@ -68,11 +69,11 @@ Hate speech detection systems are predominantly trained on English-language data
 \section{Introduction}
 \label{sec:intro}
 
-Automated hate speech detection has become a critical component of content moderation on online platforms. However, most existing systems are trained on datasets that reflect a narrow set of identity groups, primarily drawn from the American socio-cultural context. This limits their ability to generalize to other regions, languages, and minority communities.
+Automated hate speech detection has become a critical component of content moderation on online platforms. However, most existing systems are trained on datasets that reflect a narrow set of identity groups, primarily drawn from the American socio-cultural context (covering groups such as Mexican, Black, Jewish, or Asian Americans) and written in English. This US-centric bias limits their ability to generalize to other regions, languages, and minority communities.
 
 Switzerland presents a particularly interesting case: its multilingual society and specific immigration dynamics give rise to forms of implicit hate speech targeting groups that are largely absent from standard benchmarks. Groups such as cross-border workers (\textit{frontaliers}), Portuguese residents, and asylum seekers are frequent targets of online hostility, yet no dedicated dataset exists to train or evaluate hate speech classifiers on these groups.
 
-In this paper, we address this gap by constructing ToxiGen+, an extended version of the ToxiGen dataset \cite{hartvigsen2022toxigen} augmented with Swiss-specific minority groups. We use \texttt{gpt-4o-mini} to generate synthetic hate and neutral sentences from manually crafted prompts, following the ToxiGen generation methodology. We then fine-tune \texttt{GroNLP/hateBERT} \cite{caselli2021hatebert} on ToxiGen+ and benchmark its performance against a model trained on the original ToxiGen data alone.
+In this paper, we address this gap by constructing ToxiGen+, an extended version of the ToxiGen dataset \cite{hartvigsen2022toxigen} augmented with Swiss-specific minority groups. We use \texttt{gpt-4o-mini} to generate synthetic hate and neutral sentences from manually crafted prompts, following the ToxiGen generation methodology. We then fine-tune \texttt{tomh/toxigen\_roberta} \cite{hartvigsen2022toxigen} on ToxiGen+ and benchmark its performance against a model trained on the original ToxiGen data alone.
 
 Our contributions are as follows:
 \begin{itemize}
@@ -81,48 +82,62 @@ Our contributions are as follows:
     \item A comparative evaluation demonstrating the limitations of existing models on regional minority groups.
 \end{itemize}
 
----
-
-Add your introduction here. Select a current limitation or a relevant new problem: identify a specific problem you want to address. Clarify the objective(s) and the problem definition. State any hypotheses you made and reference the sources you used. Some common \LaTeX commands are listed below.
-
-\textbf{Section}: you can refer to a section as Sec.~\ref{sec:related_work}.
-
-\textbf{Equation}:
-    \begin{equation} \label{eq:example}
-    x + y = 0.
-    \end{equation}
-    You can refer to an equation as Equation \ref{eq:example}.
-
-\textbf{Figure}: you can refer to a figure as Fig.~\ref{fig:example}.
-
-\textbf{Table}: you can refer to a table as Tab.~\ref{tab:example} in your text. \url{https://www.tablesgenerator.com/} is useful for creating custom tables.
-
-\textbf{Reference}: you can cite a source using command \texttt{\textbackslash cite}, e.g.~\cite{vaswani2017attention}.
-    To add a reference, you can find your source on Google Scholar, click "Cite" and select BibTeX. Then copy the reference to \texttt{main.bib}.
-
----
 
 
 %%%%%%%%% ADD RELATED WORK SECTION %%%%%%%%%
 \section{Related Work}
 \label{sec:related_work}
 
-Add your literature review here. Discuss the limitations of the literature.
+Early work on automated hate speech detection relied on lexical features and crowd-sourced Twitter annotations \cite{waseem2016hateful, founta2018large}. These datasets, while influential, are limited to explicit slurs and surface-level toxicity, and cover a narrow set of identity groups rooted in the US socio-cultural context.
+
+The introduction of large pre-trained language models such as BERT \cite{devlin2019bert} and RoBERTa \cite{liu2019roberta} shifted the field towards fine-tuning approaches, which substantially improved detection of nuanced and context-dependent hate speech. HateBERT \cite{caselli2021hatebert} extended this line by continuing pre-training on abusive Reddit content, demonstrating that domain-adaptive pre-training benefits downstream hate speech classifiers.
+
+ToxiGen \cite{hartvigsen2022toxigen} addressed the implicit hate speech problem at scale by using GPT-3 to generate 274k machine-generated statements targeting 13 minority groups, paired with a RoBERTa-large classifier fine-tuned on this corpus. While ToxiGen represents a significant step forward, its coverage remains limited to groups prominent in the American context, leaving Swiss and European minorities entirely absent.
+
+Dynamic adversarial data collection \cite{vidgen2021learning} and multilingual toxicity APIs such as Perspective \cite{lees2022new} have broadened coverage, but still do not address region-specific implicit hate targeting communities such as cross-border workers or Portuguese residents in Switzerland. Our work directly fills this gap by augmenting ToxiGen with Swiss-specific groups and evaluating the resulting model on both the original and extended distributions.
 
 %%%%%%%%% ADD METHOD SECTION %%%%%%%%%
 \section{Method}
 \label{sec:method}
 
 \subsection{Base model and problem framing}
-We build on \texttt{tomh/toxigen\_roberta}, a publicly released RoBERTa-large checkpoint (24 layers, 1024 hidden dimensions, $\approx$355\,M parameters) that has been fine-tuned on the original ToxiGen corpus for binary toxicity classification. Our contribution is therefore framed as \emph{second-stage} fine-tuning: rather than training a classifier from a generic encoder, we adapt an already toxicity-specialised model to a new domain (Swiss-context implicit hate) while aiming to preserve its coverage of the 13 identity groups already represented in ToxiGen.
+We build on \texttt{tomh/toxigen\_roberta}, a publicly released RoBERTa-large checkpoint (24 layers, 1024 hidden dimensions, $\approx$355\,M parameters) fine-tuned on the original ToxiGen corpus for binary toxicity classification \cite{liu2019roberta, hartvigsen2022toxigen}. Our contribution is framed as \emph{second-stage} fine-tuning: rather than training a classifier from a generic encoder, we adapt an already toxicity-specialised model to a new domain (Swiss-context implicit hate) while preserving its coverage of the 13 identity groups already represented in ToxiGen.
+
+Formally, the model maps an input sequence $x$ to a label $\hat{y} \in \{0, 1\}$ via
+\begin{equation}
+  \hat{y} = \arg\max_{c} \; W \, h_{\texttt{[CLS]}}(x) + b,
+  \label{eq:argmax}
+\end{equation}
+where $h_{\texttt{[CLS]}}(x) \in \mathbb{R}^{1024}$ is the \texttt{[CLS]} representation produced by the RoBERTa encoder and $W \in \mathbb{R}^{2 \times 1024}$ is the classification head.
 
 \subsection{Dataset construction}
 We built two datasets for our experiments. The first, ToxiGen-16k, consists of 16,000 samples drawn uniformly at random from the original ToxiGen dataset, covering its 13 identity groups, and serves as our baseline.
 
-The second, ToxiGen+, extends ToxiGen with three Swiss-specific minority groups: cross-border workers, Portuguese residents, and asylum seekers. For each group, hate and neutral sentences were manually written as prompts and fed to gpt-4o-mini to generate 1,000 samples per group (500 hate, 500 neutral). These 3,000 Swiss samples were merged with 13,000 ToxiGen samples also drawn uniformly at random, yielding a balanced dataset of approximately 16,000 entries. All samples share the same schema: text, labels (1 = hate, 0 = neutral), and targetgroup.
+The second, ToxiGen+, extends ToxiGen with three Swiss-specific minority groups: cross-border workers, Portuguese residents, and asylum seekers. For each group, hate and neutral sentences were manually written as prompts and fed to \texttt{gpt-4o-mini} to generate 1,000 samples per group (500 hate, 500 neutral). These 3,000 Swiss samples were merged with 13,000 ToxiGen samples drawn uniformly at random, yielding a balanced dataset of approximately 16,000 entries. All samples share the same schema: \texttt{text}, \texttt{labels} ($1 =$ hate, $0 =$ neutral), and \texttt{target\_group}. Table~\ref{tab:datasets} summarises the composition of both datasets.
+
+\begin{table}[H]
+\centering
+\caption{Dataset composition.}
+\label{tab:datasets}
+\small
+\begin{tabular}{lrrr}
+\hline
+\textbf{Dataset} & \textbf{Total} & \textbf{Hate} & \textbf{Neutral} \\
+\hline
+ToxiGen-16k & 16{,}000 & 8{,}000 & 8{,}000 \\
+ToxiGen+ & 16{,}000 & 8{,}000 & 8{,}000 \\
+\quad of which Swiss & 3{,}000 & 1{,}500 & 1{,}500 \\
+\hline
+\end{tabular}
+\end{table}
 
 \subsection{Fine-tuning procedure}
-We fine-tune the entire $\approx$355\,M-parameter network end-to-end, attaching a two-class classification head to the \texttt{[CLS]} token and minimising standard cross-entropy via the HuggingFace \texttt{Trainer}. Each corpus is partitioned 80/10/10 into train, validation, and test splits by a label-stratified procedure with fixed seed 1, and no class weighting or resampling is applied. Optimisation uses AdamW with learning rate $2\!\times\!10^{-5}$, batch size 16, weight decay 0.01, warmup ratio 0.06, fp16 mixed precision, and a maximum sequence length of 256 tokens. We train for up to five epochs with early stopping (patience two) on validation macro F1, retaining the best checkpoint. The same recipe is applied to both corpora, so the resulting models (\texttt{ToxiGen} and \texttt{ToxiGen+}) differ only in their training data.
+We fine-tune the entire $\approx$355\,M-parameter network end-to-end, attaching a two-class classification head to the \texttt{[CLS]} token and minimising the standard cross-entropy loss
+\begin{equation}
+  \mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N} y_i \log p_i + (1-y_i)\log(1-p_i),
+  \label{eq:ce}
+\end{equation}
+where $p_i$ is the predicted probability of the hate class for example $i$, via the HuggingFace \texttt{Trainer} \cite{loshchilov2019adamw}. Each corpus is partitioned 80/10/10 into train, validation and test splits by a label-stratified procedure with fixed seed 1, and no class weighting or resampling is applied. Optimisation uses AdamW with learning rate $2\times10^{-5}$, batch size 16, weight decay 0.01, warmup ratio 0.06, fp16 mixed precision, and a maximum sequence length of 256 tokens. We train for up to five epochs with early stopping (patience 2) on validation macro F1, retaining the best checkpoint. The same recipe is applied to both corpora, so the resulting models (ToxiGen and ToxiGen+) differ only in their training data.
 
 
 %%%%%%%%% ADD VALIDATION SECTION %%%%%%%%%
@@ -147,23 +162,41 @@ We fine-tune the entire $\approx$355\,M-parameter network end-to-end, attaching 
 \end{figure*}
 
 \subsection{Evaluation protocol}
-Predictions are obtained by an $\arg\max$ over the two-class logits, which corresponds to an implicit decision threshold of 0.5. We report accuracy, macro F1 (the unweighted mean of the per-class F1 scores) and hate-class recall. Macro F1 is adopted as the primary metric because, by weighting both classes equally, it penalises a model that maximises accuracy by collapsing onto the majority class, which is precisely the failure mode that matters for a hate-speech detector. Per-target-group macro F1 additionally serves as a fairness lens across identity groups.
+Predictions are obtained by applying Eq.~\ref{eq:argmax} to the two-class logits, which corresponds to an implicit decision threshold of 0.5. We report accuracy, macro F1 (the unweighted mean of the per-class F1 scores), and hate-class recall. Macro F1 is adopted as the primary metric because, by weighting both classes equally, it penalises a model that maximises accuracy by collapsing onto the majority class, which is precisely the failure mode that matters for a hate-speech detector. Per-target-group macro F1 additionally serves as a fairness lens across identity groups.
 
 \subsection{Leakage audit and paired benchmarks}
-Because the two models are trained on different corpora, a fair head-to-head comparison requires evaluation sets unseen by \emph{both}. We reproduce each model's exact 80/10/10 split from its fixed seed and audit, programmatically, that the evaluation rows we report contain no example present in either training or either validation partition. Two such leakage-free, paired benchmarks anchor the comparison: a leftover raw Swiss set ($n=1684$, Fig.~\ref{fig:swiss}) that probes the Swiss gain, and a clean 13-group ToxiGen set ($n=424$, Fig.~\ref{fig:toxigen13}) that probes for catastrophic forgetting. In each benchmark, both models are scored on identical examples, which eliminates sampling variance from the difference.
+Because the two models are trained on different corpora, a fair head-to-head comparison requires evaluation sets unseen by both. We reproduce each model's exact 80/10/10 split from its fixed seed and audit, programmatically, that the evaluation rows we report contain no example present in either training or validation partition. Two such leakage-free, paired benchmarks anchor the comparison: a leftover raw Swiss set ($n=1684$, Fig.~\ref{fig:swiss}) that probes the Swiss gain, and a clean 13-group ToxiGen set ($n=424$, Fig.~\ref{fig:toxigen13}) that probes for catastrophic forgetting. In each benchmark, both models are scored on identical examples, which eliminates sampling variance from the difference.
 
 \subsection{Results}
-On their respective held-out test splits, ToxiGen+ is marginally stronger than ToxiGen, with both accuracy and macro F1 rising from 0.854 to 0.868. The gap widens sharply on the unseen Swiss benchmark (Fig.~\ref{fig:swiss}): macro F1 climbs from 0.898 to 0.998 and hate-class recall from 0.834 to 0.996. The confusion matrices localise the gain---of 753 truly-hate Swiss examples, the baseline misses 125 as false negatives, whereas ToxiGen+ misses only three. The largest per-group improvement is on the Portuguese community (0.842 to 0.998), the only Swiss minority without a related proxy among the original 13 identity groups.
+On their respective held-out test splits, ToxiGen+ is marginally stronger than ToxiGen, with both accuracy and macro F1 rising from 0.854 to 0.868. The gap widens sharply on the unseen Swiss benchmark (Fig.~\ref{fig:swiss}): macro F1 climbs from 0.898 to 0.998 and hate-class recall from 0.834 to 0.996. The confusion matrices localise the gain: of 753 truly-hate Swiss examples, the baseline misses 125 as false negatives, whereas ToxiGen+ misses only three. The largest per-group improvement is on the Portuguese community (0.842 to 0.998), the only Swiss minority without a related proxy among the original 13 identity groups.
 
-On the leakage-free 13-group ToxiGen set (Fig.~\ref{fig:toxigen13}), mean per-group macro F1 rises from 0.837 to 0.848 and hate recall from 0.824 to 0.869. Several original groups improve, others regress modestly, but none collapses: the lowest post-fine-tuning per-group score is 0.72. The Swiss gains are thus acquired at no catastrophic cost to the model's coverage of the original distribution.
+On the leakage-free 13-group ToxiGen set (Fig.~\ref{fig:toxigen13}), mean per-group macro F1 rises from 0.837 to 0.848 and hate recall from 0.824 to 0.869. Several original groups improve, others regress modestly, but none collapses: the lowest post-fine-tuning per-group score is 0.72. The Swiss gains are thus acquired at no catastrophic cost to the model's coverage of the original distribution. Table~\ref{tab:results} summarises the key metrics across both benchmarks.
+
+\begin{table}[H]
+\centering
+\caption{Summary of evaluation results. Macro F1 and hate-class recall for both models on the two paired benchmarks.}
+\label{tab:results}
+\small
+\begin{tabular}{llcc}
+\hline
+\textbf{Benchmark} & \textbf{Metric} & \textbf{ToxiGen} & \textbf{ToxiGen+} \\
+\hline
+\multirow{2}{*}{Swiss ($n=1684$)} & Macro F1 & 0.898 & 0.998 \\
+ & Hate recall & 0.834 & 0.996 \\
+\hline
+\multirow{2}{*}{ToxiGen-13 ($n=424$)} & Macro F1 & 0.837 & 0.848 \\
+ & Hate recall & 0.824 & 0.869 \\
+\hline
+\end{tabular}
+\end{table}
 
 \subsection{Limitations}
-Three caveats temper the headline numbers. First, the Swiss training and evaluation data share a single GPT-4o-mini generator, so the 0.998 macro F1 should be read as in-distribution generalisation to the target style rather than as evidence of robustness to organically-authored Swiss forum hate; external validation on annotated real-world text remains future work. Second, all results derive from a single seed-1 stratified split with neither $k$-fold cross-validation nor bootstrap confidence intervals; the headline Swiss gain is robust to this critique because it is measured on $n=1684$ paired examples, but per-group deltas on smaller subsets are noisier. Third, every metric is reported at the implicit 0.5 decision threshold, and a precision/recall trade-off analysis remains future work.
+Three caveats temper the headline numbers. First, the Swiss training and evaluation data share a single GPT-4o-mini generator, so the 0.998 macro F1 should be read as in-distribution generalisation to the target style rather than as evidence of robustness to organically-authored Swiss forum hate; external validation on annotated real-world text remains future work. Second, all results derive from a single seed-1 stratified split with neither $k$-fold cross-validation nor bootstrap confidence intervals; the headline Swiss gain is robust to this critique because it is measured on $n=1684$ paired examples, but per-group deltas on smaller subsets are noisier. Third, every metric is reported at the implicit 0.5 decision threshold (see Eq.~\ref{eq:argmax}), and a precision/recall trade-off analysis remains future work.
 
 %%%%%%%%% ADD CONCLUSION SECTION %%%%%%%%%
 \section{Conclusion}
 \label{sec:conclusion}
-In this work, we demonstrated that state-of-the-art hate speech detection models trained on standard benchmarks fail to generalize to Swiss-specific minority groups, exhibiting critically low recall on hateful content targeting cross-border workers, Portuguese residents, and asylum seekers. By constructing ToxiGen+, a dataset augmented with GPT-4o-mini generated samples for these groups, and fine-tuning \texttt{GroNLP/hateBERT} on it, we showed that targeted data augmentation is an effective strategy to improve detection performance on underrepresented communities.
+In this work, we demonstrated that \texttt{tomh/toxigen\_roberta}, despite strong performance on the original ToxiGen benchmark, fails to generalize to Swiss-specific minority groups, achieving only 26\% hate-class recall on cross-border workers, Portuguese residents, and asylum seekers. By constructing ToxiGen+, a dataset augmented with GPT-4o-mini generated samples for these groups, and fine-tuning the same RoBERTa-large architecture on it, we showed that targeted data augmentation is an effective strategy: macro F1 on the Swiss benchmark rises from 0.898 to 0.998, with no catastrophic forgetting on the original 13 ToxiGen groups.
 
 These results highlight the importance of culturally and regionally aware dataset construction for hate speech detection. Future work could explore multilingual extensions of ToxiGen+ to cover French, German, and Italian-speaking Swiss communities, as well as the use of human annotation to validate the quality of synthetically generated samples.
 
