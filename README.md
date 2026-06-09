@@ -1,6 +1,6 @@
 # Implicit Hate Speech Against Swiss Minorities
 
-This project, realized in the scope of the EE-559 course at EPFL, is dedicated to exploring hate speech recognition based on the [TOXIGEN](https://github.com/microsoft/ToxiGen) dataset, extended to include swiss minority groups.
+This project, realized in the scope of the EE-559 course at EPFL, is dedicated to exploring hate speech recognition based on the [TOXIGEN](https://github.com/microsoft/ToxiGen) dataset, extended to include swiss minority groups. The baseline model used is [`tomh/toxigen_roberta`](https://huggingface.co/tomh/toxigen_roberta), a RoBERTa model fine-tuned on the ToxiGen dataset.
 
 **This repository contains and discusses content that is offensive or upsetting. All materials are intended to support research that improves toxicity detection methods. Included examples of toxicity do not represent how the authors feel about any identity groups.**
 
@@ -25,21 +25,35 @@ Each minority group (asylum seekers, portuguese, cross-border workers) are repre
 - **`text`**: generated sample corresponding to the ouput of `gpt-4o-mini` from given sentences
 - **`mode`**: 1 means the sample was generated from the `hate` dataset
 - **`target_group`**: targeted group (seekers, portuguese, cross-border workers)
-- **`toxicity_ai`**: AI annotated toxicity score on a scale from 1 to 5 (1 being benign)
 
-## Benchmarks
+## Usage
 
-Performance on `tomh/toxigen_roberta` directly gave suprising results: roBERTa is very precise (1.0 all the time), but has very low recall (does not detect hate from our dataset) with only 26% hateful content reported.
+### Training
 
-<img src="https://github.com/l0uisgrange/dl-project-2026/blob/main/assets/distribution.png" width="350" />
+To fine-tune the baseline model (`tomh/toxigen_roberta`) on the original ToxiGen dataset:
 
+```bash
+python -m src.demo train-toxigen
 ```
-              precision    recall  f1-score   support
 
-     neutral       0.59      1.00      0.74      2432
-        hate       1.00      0.26      0.41      2253
+To fine-tune on the extended dataset including swiss minority groups:
 
-    accuracy                           0.64      4685
-   macro avg       0.80      0.63      0.58      4685
-weighted avg       0.79      0.64      0.58      4685
+```bash
+python -m src.demo train-toxigen-plus
 ```
+
+### Benchmarking
+
+To run inference on the held-out eval set and compare both models:
+
+```bash
+python -m src.demo compare
+```
+
+To generate all benchmark plots for both models:
+
+```bash
+python -m src.bench
+```
+
+Plots are saved in the `assets/` folder.
