@@ -33,8 +33,8 @@ toxigen = toxigen.drop_duplicates(subset=["text"]).reset_index(drop=True)
 
 toxigen_shuffled = toxigen.sample(frac=1, random_state=42).reset_index(drop=True)
 
-# ---- TOXIGEN (16k, no swiss) ----
-toxigen_16k = toxigen_shuffled.iloc[:16000].copy()
+# ---- TOXIGEN (13k, same rows as toxigen_plus for fair comparison) ----
+toxigen_16k = toxigen_shuffled.iloc[:13000].copy()
 save_splits(toxigen_16k, "toxigen")
 
 # ---- SWISS DATA ----

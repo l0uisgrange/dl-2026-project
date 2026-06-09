@@ -18,6 +18,7 @@ import sys
 import pandas as pd
 import torch
 import yaml
+from safetensors.torch import load_file as load_safetensors
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
@@ -33,8 +34,8 @@ MODELS = {
     "ToxiGen+ (swiss)": "./outputs/bert_toxigen_plus",
 }
 
-DATA_PATH_SWISS = "./data/dataset_toxigen_plus_val.csv"
-DATA_PATH_HELDOUT = "./data/dataset_toxigen_heldout.csv"
+DATA_PATH_SWISS_VAL = "./data/dataset_toxigen_plus_val.csv"
+DATA_PATH_TOXIGEN_VAL = "./data/dataset_toxigen_val.csv"
 SWISS_GROUPS = {"asylum_seekers", "cross_border_workers", "portuguese"}
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -59,19 +60,16 @@ def cmd_train(config_key: str):
 
 
 def load_eval_data() -> pd.DataFrame:
-    swiss = pd.read_csv(DATA_PATH_SWISS).dropna(subset=["text", "labels"])
+    # Swiss groups: val split of toxigen_plus (unseen during training)
+    swiss = pd.read_csv(DATA_PATH_SWISS_VAL).dropna(subset=["text", "labels"])
     swiss["labels"] = pd.to_numeric(swiss["labels"], errors="coerce").astype(int)
     swiss = swiss[swiss["target_group"].isin(SWISS_GROUPS)].reset_index(drop=True)
 
-    heldout = pd.read_csv(DATA_PATH_HELDOUT).dropna(subset=["text", "labels"])
-    heldout["labels"] = pd.to_numeric(heldout["labels"], errors="coerce").astype(int)
-    sampled = [
-        sub.sample(min(len(sub), 500), random_state=42)
-        for _, sub in heldout.groupby("target_group")
-    ]
-    heldout = pd.concat(sampled, ignore_index=True)
+    # ToxiGen groups: val split of toxigen (unseen during training)
+    toxigen_val = pd.read_csv(DATA_PATH_TOXIGEN_VAL).dropna(subset=["text", "labels"])
+    toxigen_val["labels"] = pd.to_numeric(toxigen_val["labels"], errors="coerce").astype(int)
 
-    df = pd.concat([swiss, heldout], ignore_index=True).dropna(subset=["target_group"])
+    df = pd.concat([swiss, toxigen_val], ignore_index=True).dropna(subset=["target_group"])
     print(f"[data] {len(df)} examples  hate={df['labels'].sum()}  neutral={(df['labels'] == 0).sum()}")
     print(f"       groups: {sorted(df['target_group'].unique())}")
     return df
@@ -79,7 +77,9 @@ def load_eval_data() -> pd.DataFrame:
 
 def run_inference(df: pd.DataFrame, model_dir: str) -> pd.DataFrame:
     tokenizer = AutoTokenizer.from_pretrained("tomh/toxigen_roberta", use_fast=False)
-    model = AutoModelForSequenceClassification.from_pretrained(model_dir).to(DEVICE)
+    model = AutoModelForSequenceClassification.from_pretrained("tomh/toxigen_roberta")
+    model.load_state_dict(load_safetensors(f"{model_dir}/model.safetensors", device="cpu"))
+    model = model.to(DEVICE)
     model.eval()
 
     preds, scores = [], []

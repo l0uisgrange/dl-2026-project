@@ -22,6 +22,7 @@ from sklearn.metrics import (
     recall_score,
     roc_curve,
 )
+from safetensors.torch import load_file as load_safetensors
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 MODELS = {
@@ -30,8 +31,8 @@ MODELS = {
 }
 MODEL_KEYS = list(MODELS.keys())
 
-DATA_PATH_SWISS = "./data/dataset_toxigen_plus_val.csv"
-DATA_PATH_HELDOUT = "./data/dataset_toxigen_heldout.csv"
+DATA_PATH_SWISS_VAL = "./data/dataset_toxigen_plus_val.csv"
+DATA_PATH_TOXIGEN_VAL = "./data/dataset_toxigen_val.csv"
 SWISS_GROUPS = {"asylum_seekers", "cross_border_workers", "portuguese"}
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MAX_LENGTH = 256
@@ -64,22 +65,16 @@ GROUP_PALETTE = {
 
 
 def load_data():
-    # Swiss groups: use the hand-crafted + GPT-generated data (unseen by both models
-    # since training used only the merged dataset, not these raw files directly)
-    swiss = pd.read_csv(DATA_PATH_SWISS).dropna(subset=["text", "labels"])
+    # Swiss groups: val split of toxigen_plus (unseen during training)
+    swiss = pd.read_csv(DATA_PATH_SWISS_VAL).dropna(subset=["text", "labels"])
     swiss["labels"] = pd.to_numeric(swiss["labels"], errors="coerce").astype(int)
     swiss = swiss[swiss["target_group"].isin(SWISS_GROUPS)].reset_index(drop=True)
 
-    # ToxiGen groups: use held-out rows (iloc[16000:]) never seen during training
-    heldout = pd.read_csv(DATA_PATH_HELDOUT).dropna(subset=["text", "labels"])
-    heldout["labels"] = pd.to_numeric(heldout["labels"], errors="coerce").astype(int)
-    # sample 500 per group for speed (still fully unseen)
-    sampled = []
-    for grp, sub in heldout.groupby("target_group"):
-        sampled.append(sub.sample(min(len(sub), 500), random_state=42))
-    heldout = pd.concat(sampled, ignore_index=True)
+    # ToxiGen groups: val split of toxigen (unseen during training)
+    toxigen_val = pd.read_csv(DATA_PATH_TOXIGEN_VAL).dropna(subset=["text", "labels"])
+    toxigen_val["labels"] = pd.to_numeric(toxigen_val["labels"], errors="coerce").astype(int)
 
-    df = pd.concat([swiss, heldout], ignore_index=True)
+    df = pd.concat([swiss, toxigen_val], ignore_index=True)
     df = df.dropna(subset=["target_group"]).reset_index(drop=True)
     print(
         f"[data] {len(df)} examples  hate={df['labels'].sum()}  neutral={(df['labels']==0).sum()}"
@@ -96,8 +91,10 @@ def swiss_only(df):
 
 
 def run_inference(df, model_dir):
-    tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=True)
-    model = AutoModelForSequenceClassification.from_pretrained(model_dir).to(DEVICE)
+    tokenizer = AutoTokenizer.from_pretrained("tomh/toxigen_roberta", use_fast=False)
+    model = AutoModelForSequenceClassification.from_pretrained("tomh/toxigen_roberta")
+    model.load_state_dict(load_safetensors(f"{model_dir}/model.safetensors", device="cpu"))
+    model = model.to(DEVICE)
     model.eval()
 
     preds, scores = [], []
