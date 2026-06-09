@@ -5,17 +5,9 @@ from datasets import Dataset, DatasetDict, load_from_disk
 
 
 def load_dataset(config):
-    """
-    Load dataset using YAML config.
-    Expects train_path and val_path keys for CSV datasets.
-    """
-
     cfg = config["dataset"]
     dataset_type = cfg["dataset_type"]
 
-    # =====================================================
-    # CSV DATASET (pre-split train/val files)
-    # =====================================================
     if dataset_type == "csv":
         train_path = Path(cfg["train_path"])
         val_path = Path(cfg["val_path"])
@@ -35,12 +27,8 @@ def load_dataset(config):
             }
         )
 
-    # =====================================================
-    # HF DATASET
-    # =====================================================
     elif dataset_type == "hf":
-        dataset_path = Path(cfg["dataset_path"])
-        return load_from_disk(dataset_path)
+        return load_from_disk(Path(cfg["dataset_path"]))
 
     else:
         raise ValueError(f"Unsupported dataset type: {dataset_type}")

@@ -1,10 +1,3 @@
-"""
-bench.py — Evaluate both fine-tuned models on the Swiss minority dataset
-and generate rich visualisation plots.
-
-Usage: python -m src.bench
-"""
-
 import os
 
 import matplotlib.pyplot as plt
@@ -61,16 +54,11 @@ GROUP_PALETTE = {
 }
 
 
-# ── data ──────────────────────────────────────────────────────────────────────
-
-
 def load_data():
-    # Swiss groups: val split of toxigen_plus (unseen during training)
     swiss = pd.read_csv(DATA_PATH_SWISS_VAL).dropna(subset=["text", "labels"])
     swiss["labels"] = pd.to_numeric(swiss["labels"], errors="coerce").astype(int)
     swiss = swiss[swiss["target_group"].isin(SWISS_GROUPS)].reset_index(drop=True)
 
-    # ToxiGen groups: val split of toxigen (unseen during training)
     toxigen_val = pd.read_csv(DATA_PATH_TOXIGEN_VAL).dropna(subset=["text", "labels"])
     toxigen_val["labels"] = pd.to_numeric(toxigen_val["labels"], errors="coerce").astype(int)
 
@@ -85,9 +73,6 @@ def load_data():
 
 def swiss_only(df):
     return df[df["target_group"].isin(SWISS_GROUPS)].reset_index(drop=True)
-
-
-# ── inference ─────────────────────────────────────────────────────────────────
 
 
 def run_inference(df, model_dir):
@@ -112,12 +97,8 @@ def run_inference(df, model_dir):
     out = df.copy()
     out["pred"] = preds
     out["hate_score"] = scores
-    # certainty = max(p_hate, p_neutral)
     out["certainty"] = out["hate_score"].apply(lambda s: max(s, 1 - s))
     return out
-
-
-# ── per-model plots (Swiss groups only) ───────────────────────────────────────
 
 
 def plot_model(df_swiss, model_name, tag):
@@ -127,7 +108,6 @@ def plot_model(df_swiss, model_name, tag):
     fig, axes = plt.subplots(2, 2, figsize=(13, 10))
     fig.suptitle(model_name, fontsize=14, fontweight="bold", y=1.01)
 
-    # 1. Macro F1 / Precision / Recall per Swiss group
     ax = axes[0, 0]
     metrics = {
         "Macro F1": [
@@ -168,7 +148,6 @@ def plot_model(df_swiss, model_name, tag):
     ax.legend(fontsize=8)
     ax.set_ylabel("Score")
 
-    # 2. Confusion matrix
     ax = axes[0, 1]
     cm = confusion_matrix(df_swiss["labels"], df_swiss["pred"])
     sns.heatmap(
@@ -184,7 +163,6 @@ def plot_model(df_swiss, model_name, tag):
     ax.set_ylabel("True")
     ax.set_xlabel("Predicted")
 
-    # 3. Hate-score distribution by true label
     ax = axes[1, 0]
     ax.hist(
         df_swiss[df_swiss["labels"] == 0]["hate_score"],
@@ -206,7 +184,6 @@ def plot_model(df_swiss, model_name, tag):
     ax.set_ylabel("Count")
     ax.legend(fontsize=8)
 
-    # 4. ROC curve per Swiss group
     ax = axes[1, 1]
     for g, c in zip(groups, colors):
         sub = df_swiss[df_swiss["target_group"] == g]
@@ -229,11 +206,7 @@ def plot_model(df_swiss, model_name, tag):
     print(f"[saved] {path}")
 
 
-# ── all-16-groups comparison ───────────────────────────────────────────────────
-
-
 def plot_all_groups_comparison(results_full):
-    """Macro F1 on all 16 groups for both models, sorted by baseline F1."""
     all_groups = sorted(results_full[MODEL_KEYS[0]]["target_group"].unique())
 
     baseline_f1s = [
@@ -288,15 +261,7 @@ def plot_all_groups_comparison(results_full):
     print(f"[saved] {path}")
 
 
-# ── certainty / confidence plots ───────────────────────────────────────────────
-
-
 def plot_certainty(results_full):
-    """
-    2 subplots per model (side by side):
-      - Certainty distribution split by correct / incorrect prediction
-      - Calibration curve (reliability diagram)
-    """
     fig, axes = plt.subplots(2, 2, figsize=(13, 9))
     fig.suptitle("Classification certainty & calibration", fontsize=13, fontweight="bold")
 
@@ -304,7 +269,6 @@ def plot_certainty(results_full):
         correct = df["pred"] == df["labels"]
         incorrect = ~correct
 
-        # ── certainty distribution: correct vs wrong
         ax = axes[0, col]
         ax.hist(
             df[correct]["certainty"],
@@ -326,7 +290,6 @@ def plot_certainty(results_full):
         ax.set_ylabel("Count")
         ax.legend(fontsize=8)
 
-        # ── calibration curve
         ax = axes[1, col]
         prob_true, prob_pred = calibration_curve(
             df["labels"], df["hate_score"], n_bins=10, strategy="uniform"
@@ -347,14 +310,7 @@ def plot_certainty(results_full):
     print(f"[saved] {path}")
 
 
-# ── error analysis: confidence of misclassified samples ───────────────────────
-
-
 def plot_error_analysis(results_full):
-    """
-    For each model: scatter of hate_score vs true label, coloured by correct/wrong,
-    + bar chart of error rate per confidence bucket.
-    """
     fig, axes = plt.subplots(2, 2, figsize=(13, 9))
     fig.suptitle("Error analysis by confidence", fontsize=13, fontweight="bold")
 
@@ -364,7 +320,6 @@ def plot_error_analysis(results_full):
     for col, (name, df) in enumerate(results_full.items()):
         correct = (df["pred"] == df["labels"]).astype(int)
 
-        # scatter: hate_score vs true label
         ax = axes[0, col]
         jitter = np.random.default_rng(42).uniform(-0.08, 0.08, len(df))
         sc = ax.scatter(
@@ -384,7 +339,6 @@ def plot_error_analysis(results_full):
         ax.set_yticklabels(["neutral", "hate"])
         plt.colorbar(sc, ax=ax, label="correct")
 
-        # error rate per confidence bucket
         ax = axes[1, col]
         df2 = df.copy()
         df2["bucket"] = pd.cut(
@@ -405,9 +359,6 @@ def plot_error_analysis(results_full):
     plt.savefig(path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"[saved] {path}")
-
-
-# ── comparison plot (Swiss groups only) ───────────────────────────────────────
 
 
 def plot_comparison(results_swiss):
@@ -447,9 +398,6 @@ def plot_comparison(results_swiss):
     plt.savefig(path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"[saved] {path}")
-
-
-# ── main ───────────────────────────────────────────────────────────────────────
 
 
 def main():

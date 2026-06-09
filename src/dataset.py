@@ -1,7 +1,3 @@
-"""
-code used to generate our datasets (inside the prompts folder)
-"""
-
 import argparse
 import csv
 import os
@@ -23,10 +19,6 @@ GROUPS = ["cross_border_workers", "asylum_seekers", "portuguese"]
 
 
 def generate(group: str, mode: str, n: int = 1000):
-    """
-    generates a dataset of n examples for the given group and mode
-    """
-
     input_file = f"prompts/{mode}_{group}_sentences.txt"
     output_file = f"data/{mode}_{group}.csv"
 
@@ -90,7 +82,6 @@ def generate(group: str, mode: str, n: int = 1000):
                 toxicity = int(parts[0].strip())
                 text = "|".join(parts[1:]).strip()
             else:
-                # fallback function
                 toxicity, intent, text = 1, 0, line
             writer.writerow([text, 1 if mode == "hate" else 0, group, toxicity])
 
@@ -99,7 +90,6 @@ def generate(group: str, mode: str, n: int = 1000):
 
 if __name__ == "__main__":
     # python3 src/dataset.py --group cross_border_workers --mode hate --n 10
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--group", type=str, required=True, choices=GROUPS)
     parser.add_argument("--mode", type=str, required=True, choices=["hate", "neutral"])

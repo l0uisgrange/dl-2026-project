@@ -1,17 +1,3 @@
-"""
-demo.py — CLI entry point for training and evaluation.
-
-Commands:
-  train-toxigen       Fine-tune on ToxiGen-16k (baseline)
-  train-toxigen-plus  Fine-tune on ToxiGen+ (swiss context)
-  compare             Run inference on held-out eval data and compare both models
-
-Usage:
-  python -m src.demo train-toxigen
-  python -m src.demo train-toxigen-plus
-  python -m src.demo compare
-"""
-
 import argparse
 import sys
 
@@ -21,8 +7,6 @@ import yaml
 from safetensors.torch import load_file as load_safetensors
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-# ── constants ─────────────────────────────────────────────────────────────────
 
 CONFIGS = {
     "toxigen": "./config/config_toxigen.yaml",
@@ -43,9 +27,6 @@ MAX_LENGTH = 256
 BATCH_SIZE = 32
 
 
-# ── training ──────────────────────────────────────────────────────────────────
-
-
 def cmd_train(config_key: str):
     from src.train import train
 
@@ -56,16 +37,11 @@ def cmd_train(config_key: str):
     train(cfg)
 
 
-# ── evaluation ────────────────────────────────────────────────────────────────
-
-
 def load_eval_data() -> pd.DataFrame:
-    # Swiss groups: val split of toxigen_plus (unseen during training)
     swiss = pd.read_csv(DATA_PATH_SWISS_VAL).dropna(subset=["text", "labels"])
     swiss["labels"] = pd.to_numeric(swiss["labels"], errors="coerce").astype(int)
     swiss = swiss[swiss["target_group"].isin(SWISS_GROUPS)].reset_index(drop=True)
 
-    # ToxiGen groups: val split of toxigen (unseen during training)
     toxigen_val = pd.read_csv(DATA_PATH_TOXIGEN_VAL).dropna(subset=["text", "labels"])
     toxigen_val["labels"] = pd.to_numeric(toxigen_val["labels"], errors="coerce").astype(int)
 
@@ -142,14 +118,10 @@ def cmd_compare():
         print_report(result, model_name)
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="ToxiGen hate speech detection — train or compare models",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__,
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
