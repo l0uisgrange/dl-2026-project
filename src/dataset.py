@@ -2,9 +2,10 @@
 code used to generate our datasets (inside the prompts folder)
 """
 
-import os
-import csv
 import argparse
+import csv
+import os
+
 from openai import OpenAI
 
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
@@ -19,6 +20,7 @@ ENGINE = "gpt-3.5-turbo-instruct"
 ENDPOINT_URL = f"https://api.openai.com/v1/engines/{ENGINE}/completions"
 SECRET_KEY = os.environ.get("OPENAI_API_KEY", "sk-YOUR-KEY-HERE")
 GROUPS = ["cross_border_workers", "asylum_seekers", "portuguese"]
+
 
 def generate(group: str, mode: str, n: int = 1000):
     """
@@ -61,8 +63,8 @@ def generate(group: str, mode: str, n: int = 1000):
             f"- Sound like a real FRUSTRATED Swiss resident ON A FORUM\n"
             f"- No slurs, no direct insults, but VERY STRONG opinions are encouraged\n"
             f"- One sentence per line, nothing else."
-            if mode == "hate" else
-            f"Write {n_per_stereotype} different neutral or positive sentences in lowercase about {GROUP_NAMES[group]}"
+            if mode == "hate"
+            else f"Write {n_per_stereotype} different neutral or positive sentences in lowercase about {GROUP_NAMES[group]}"
             f"in Switzerland, inspired by this angle: '{stereotype}'. "
             f"You MUST explicitly mention '{GROUP_NAMES[group]}' in every sentence. "
             f"Return one sentence per line, nothing else."
@@ -94,13 +96,14 @@ def generate(group: str, mode: str, n: int = 1000):
 
     print(f"[done] to {output_file}")
 
+
 if __name__ == "__main__":
     # python3 src/dataset.py --group cross_border_workers --mode hate --n 10
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--group",  type=str, required=True, choices=GROUPS)
-    parser.add_argument("--mode",   type=str, required=True, choices=["hate", "neutral"])
-    parser.add_argument("--n",      type=int, default=1000)
+    parser.add_argument("--group", type=str, required=True, choices=GROUPS)
+    parser.add_argument("--mode", type=str, required=True, choices=["hate", "neutral"])
+    parser.add_argument("--n", type=int, default=1000)
     parser.add_argument("--output", type=str, default=None)
     args = parser.parse_args()
 

@@ -4,11 +4,11 @@ model:
 
 dataset:
   dataset_type: csv
-  dataset_path: ./data/dataset_toxigen_swiss_context.csv
-  valid_size: 0.10
+  train_path: ./data/dataset_toxigen_plus_train.csv
+  val_path: ./data/dataset_toxigen_plus_val.csv
 
 training:
-  output_dir: ./outputs/bert_toxigen_swiss_context
+  output_dir: ./outputs/bert_toxigen_plus
   max_length: 256
   batch_size: 16
   num_epochs: 5

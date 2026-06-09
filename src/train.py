@@ -1,27 +1,18 @@
 import numpy as np
-from datasets import Dataset,DatasetDict
-from sklearn.model_selection import train_test_split 
+import torch
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-from transformers import Trainer,TrainingArguments,DataCollatorWithPadding,EarlyStoppingCallback
+from transformers import DataCollatorWithPadding, EarlyStoppingCallback, Trainer, TrainingArguments
+
 from src.load_dataset import load_dataset
 from src.load_model import load_model
-import torch
-def create_splits(dataset, valid_size, seed):
-    df=dataset.to_pandas()
-    train, valid = train_test_split(
-        df,
-        test_size=valid_size,
-        random_state=seed,
-        stratify=df["labels"],
-    )
 
-    return DatasetDict({
-        "train": Dataset.from_pandas(train, preserve_index=False),
-        "validation": Dataset.from_pandas(valid, preserve_index=False)})
+
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
     preds = np.argmax(logits, axis=-1)
-    precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average="macro" , zero_division=0)
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        labels, preds, average="macro", zero_division=0
+    )
     acc = accuracy_score(labels, preds)
     return {
         "accuracy": acc,
@@ -29,7 +20,9 @@ def compute_metrics(eval_pred):
         "recall": recall,
         "f1": f1,
     }
-def tokenized_dataset(datasets,tokenizer,max_length):
+
+
+def tokenized_dataset(datasets, tokenizer, max_length):
     def tokenize_batch(batch):
         return tokenizer(
             batch["text"],
@@ -37,19 +30,17 @@ def tokenized_dataset(datasets,tokenizer,max_length):
             padding=False,
             max_length=max_length,
         )
+
     tokenized_dataset = datasets.map(tokenize_batch, batched=True)
-    tokenized_dataset = tokenized_dataset.remove_columns(["text"]) 
-    tokenized_dataset.set_format(type="torch") 
+    tokenized_dataset = tokenized_dataset.remove_columns(["text"])
+    tokenized_dataset.set_format(type="torch")
     return tokenized_dataset
+
 
 def train(cfg):
 
-    model,tokenizer = load_model(cfg)
-    dataset=load_dataset(cfg)
-    dataset = create_splits(
-    dataset,
-    valid_size=cfg["dataset"]["valid_size"],
-    seed=cfg["seed"],)
+    model, tokenizer = load_model(cfg)
+    dataset = load_dataset(cfg)
     tokenized = tokenized_dataset(dataset, tokenizer, cfg["training"]["max_length"])
 
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
@@ -76,14 +67,14 @@ def train(cfg):
     )
 
     trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=tokenized["train"],
-            eval_dataset=tokenized["validation"],
-            data_collator=data_collator,
-            compute_metrics=compute_metrics,
-            callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg["early_stopping_patience"])],
-        )
+        model=model,
+        args=training_args,
+        train_dataset=tokenized["train"],
+        eval_dataset=tokenized["validation"],
+        data_collator=data_collator,
+        compute_metrics=compute_metrics,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg["early_stopping_patience"])],
+    )
 
     train_result = trainer.train(resume_from_checkpoint=cfg["resume_from_checkpoint"])
     eval_result = trainer.evaluate()

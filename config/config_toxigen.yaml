@@ -1,0 +1,23 @@
+model:
+  name: tomh/toxigen_roberta
+  num_labels: 2
+
+dataset:
+  dataset_type: csv
+  train_path: ./data/dataset_toxigen_train.csv
+  val_path: ./data/dataset_toxigen_val.csv
+
+training:
+  output_dir: ./outputs/bert_toxigen
+  max_length: 256
+  batch_size: 16
+  num_epochs: 5
+  learning_rate: 0.00002
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  best_model: True
+  logging_steps: 1000
+
+seed: 1
+early_stopping_patience: 2
+resume_from_checkpoint: null
